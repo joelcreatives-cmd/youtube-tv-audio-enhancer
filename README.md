@@ -54,4 +54,8 @@ air (9 kHz) → compressor/limiter → make-up gain → output.
 
 ## Status
 Tested in desktop Chrome with a test page (remote keys, settings saved, silence fallback).
-Not yet tested on a Samsung TV.
+Working on a Samsung QA50QEF1 (2025) with TizenBrew 2.0.5.
+
+Keep Developer Mode on with Host PC IP `127.0.0.1`: TizenBrew needs it every time it runs.
+If TizenBrew shows "Launch Service failed: Unknown error.", restart the TV again (see
+reisxd/TizenBrew#234 and #244).
