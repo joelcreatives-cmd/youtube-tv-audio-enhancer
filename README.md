@@ -18,6 +18,7 @@ remotes that have them (A red, B green, C yellow, D blue); on smart remotes with
 | **C** (yellow) | Next sound mode |
 | **D** (blue) | Open / close the **Enhancer menu** |
 | **CH ▲ / CH ▼** | Playback speed faster / slower (0.75× to 2×) |
+| **OK** (while sped up and playing) | Back to Normal speed — that press only; the next OK works in YouTube as usual |
 | **1 – 9** | Jump forward that many minutes |
 | **0**, then **1 – 9** | Jump back that many minutes (0 waits 3 s for the number) |
 | **GUIDE** | Sleep timer: Off → 15 → 30 → 45 → 60 → 90 → 120 min → End of video → Off |

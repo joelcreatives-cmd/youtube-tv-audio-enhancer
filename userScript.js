@@ -10,7 +10,7 @@
  *   GREEN  = boost up        RED  = boost down
  *   YELLOW = next sound mode BLUE = open / close the Enhancer menu
  * GUIDE = cycle sleep timer. PRE-CH = enhancement on/off.
- * CH UP/DOWN = playback speed. 1-9 = jump forward that many minutes, 0 then 1-9 = jump back.
+ * CH UP/DOWN = playback speed; OK (while sped up and playing) = normal speed. 1-9 = jump forward that many minutes, 0 then 1-9 = jump back.
  * In the menu: UP/DOWN pick a setting, LEFT/RIGHT change it, OK = normal speed, BACK / BLUE close it.
  *
  * Written in ES5-style JavaScript on purpose: older Tizen browser engines don't support newer syntax.
@@ -24,7 +24,7 @@
   if (window.__ytAudioEnhancer) return; // TizenBrew may evaluate the script more than once
   window.__ytAudioEnhancer = true;
 
-  var VERSION = "1.2.0";
+  var VERSION = "1.2.1";
   var STORE_KEY = "ytAudioEnhancer.v1";
   var BOOST_STEPS = [1, 1.25, 1.5, 2, 2.5, 3, 4];
   var SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -451,7 +451,7 @@
   }
 
   function showSpeed() {
-    toast("\u23e9 Speed: " + speedText(), "CH \u25b2 faster" + DOT + "CH \u25bc slower" + DOT + "OK in menu = normal");
+    toast("\u23e9 Speed: " + speedText(), "CH \u25b2 faster" + DOT + "CH \u25bc slower" + DOT + "OK = normal");
   }
   function showStatus(ms) {
     if (state.unsupported) { toast("Audio enhancer: not supported on this TV", "Hold D for 3 s to try again", ms); return; }
@@ -631,6 +631,18 @@
       if (!e.repeat && !state.unsupported) MENU[2].change(1);
       showStatus();
       return;
+    }
+
+    // OK while a video is sped up (or slowed down) and playing: back to Normal speed.
+    // That press is used up; the next OK goes to YouTube as usual. Paused videos are left alone.
+    if (code === KEY.ENTER && state.speed !== 1 && videoOpen()) {
+      var pv = findVideo();
+      if (pv && !pv.paused) {
+        consume(e);
+        if (!e.repeat) { state.speed = 1; save(); applySpeed(); }
+        showSpeed();
+        return;
+      }
     }
 
     // CH up / down: playback speed without opening the menu.

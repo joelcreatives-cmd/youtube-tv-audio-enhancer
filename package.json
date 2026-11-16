@@ -1,11 +1,11 @@
 {
   "name": "youtube-tv-audio-enhancer",
   "appName": "YouTube Audio Enhancer",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "YouTube on your Samsung TV with volume boost, sound modes, speed, minute jumps and a sleep timer. A/B boost, C mode, D menu, CH speed, 1-9 jump, GUIDE sleep, PRE-CH on/off.",
   "packageType": "mods",
   "websiteURL": "https://youtube.com/tv?additionalDataUrl=http%3A%2F%2Flocalhost%3A8085%2Fdial%2Fapps%2FYouTube",
-  "main": "dist/userScript-1.2.0.js",
+  "main": "dist/userScript-1.2.1.js",
   "keys": [
     "ColorF0Red",
     "ColorF1Green",
