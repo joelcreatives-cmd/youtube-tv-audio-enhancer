@@ -1,8 +1,8 @@
 # YouTube TV Audio Enhancer
 
-A [TizenBrew](https://github.com/reisxd/TizenBrew) module that adds volume boost and sound modes to
-YouTube on Samsung (Tizen) TVs. It runs YouTube's own TV app (youtube.com/tv) and only changes the
-audio: your account, subscriptions and the normal YouTube player all stay the same. No ad-blocking or
+A [TizenBrew](https://github.com/reisxd/TizenBrew) module that adds volume boost, sound modes,
+playback speed and a sleep timer to YouTube on Samsung (Tizen) TVs. It runs YouTube's own TV app (youtube.com/tv) and only adds
+these controls: your account, subscriptions and the normal YouTube player all stay the same. No ad-blocking or
 other changes.
 
 ## Remote controls
@@ -15,8 +15,26 @@ Uses the colour keys. On Samsung smart remotes without colour buttons, press the
 | GREEN | Boost up (100 → 125 → 150 → 200 → 250 → 300 → 400%) |
 | RED | Boost down |
 | YELLOW | Next sound mode |
-| BLUE | Enhancement on/off |
+| BLUE | Open / close the **Enhancer menu** |
 | BLUE (hold 3 s) | Try again after "not supported" |
+
+### Enhancer menu (BLUE)
+UP/DOWN choose a setting, LEFT/RIGHT change it, OK or BACK closes it. It closes by itself after 20 s.
+
+| Setting | Choices |
+| --- | --- |
+| Volume boost | 100–400% |
+| Sound mode | the six modes below |
+| Enhancement | On / Off (compare with the original sound) |
+| Playback speed | 0.75×, Normal, 1.25×, 1.5×, 1.75×, 2× — kept for every video until you change it |
+| Sleep timer | Off, 15, 30, 45, 60, 90, 120 min, or End of this video |
+
+**Sleep timer:** a minute before the end a message warns you. Then the sound fades out over 10 seconds,
+the video pauses and the screen goes dark. Press any button during the fade to cancel, or any button
+afterwards to wake the screen. The timer resets each time you open the module. (Apps can't switch the
+TV itself off, so set the TV's own sleep timer too if you want it to turn off.)
+
+**Speed:** if you change speed in YouTube's own menu instead, the module keeps that speed.
 
 Sound modes: **Boost only**, **Clear voice** (default), **Bass boost**, **Movie**, **Music**,
 **Night (even volume)**. Settings are remembered on the TV.
