@@ -16,10 +16,15 @@
 (function () {
   "use strict";
 
+  // TizenBrew runs this at document start ("evaluateScriptOnDocumentStart") so our key listeners are
+  // registered before YouTube's own. That also runs it in every frame and on any page the app opens,
+  // so only continue in the top-level YouTube page.
+  if (window.top !== window) return;
+  if (!/(^|\.)youtube\.com$/.test(location.hostname)) return;
   if (window.__ytAudioEnhancer) return; // TizenBrew may evaluate the script more than once
   window.__ytAudioEnhancer = true;
 
-  var VERSION = "1.1.0";
+  var VERSION = "1.1.1";
   var STORE_KEY = "ytAudioEnhancer.v1";
   var BOOST_STEPS = [1, 1.25, 1.5, 2, 2.5, 3, 4];
   var SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -184,7 +189,7 @@
         clearInterval(timer);
         state.unsupported = true;
         save();
-        toast("Audio enhancer isn't supported on this TV — turning it off", 4000);
+        toast("Audio enhancer isn't supported on this TV", "Turning it off so YouTube plays normally", 4000);
         setTimeout(function () { location.reload(); }, 3000);
       }
     }, 1000);
@@ -289,7 +294,7 @@
     var left = sleep.endsAt - Date.now();
     if (!sleep.warned && left <= 60000 && left > FADE_SECONDS * 1000) {
       sleep.warned = true;
-      toast("&#127769; Sleep timer: pausing in 1 minute<br><small style=\"opacity:.7;font-size:20px\">Press BLUE to change it</small>", 5000);
+      toast("\uD83C\uDF19 Sleep timer: pausing in 1 minute", "Press BLUE to change it", 5000);
     }
     if (left <= FADE_SECONDS * 1000 && !sleep.fading) startFade();
     if (menuOpen) renderMenu();
@@ -360,20 +365,12 @@
     setTimeout(restoreVolume, 300);
     closeMenu();
     if (!dimEl) {
-      dimEl = document.createElement("div");
-      var s = dimEl.style;
-      s.position = "fixed";
-      s.left = s.top = "0";
-      s.width = s.height = "100%";
-      s.background = "#000";
-      s.zIndex = "2147483646";
-      s.color = "rgba(255,255,255,.35)";
-      s.font = "400 28px/1.4 Roboto, Arial, sans-serif";
-      s.display = "flex";
-      s.alignItems = "center";
-      s.justifyContent = "center";
-      s.textAlign = "center";
-      dimEl.innerHTML = "&#127769; Sleep timer ended<br>Press any button to wake";
+      dimEl = el("div",
+        "position:fixed;left:0;top:0;width:100%;height:100%;background:#000;z-index:2147483646;" +
+        "color:rgba(255,255,255,.35);font:400 28px/1.4 Roboto,Arial,sans-serif;" +
+        "display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center");
+      dimEl.appendChild(el("div", "", "🌙 Sleep timer ended"));
+      dimEl.appendChild(el("div", "", "Press any button to wake"));
     }
     if (document.body && dimEl.parentNode !== document.body) document.body.appendChild(dimEl);
   }
@@ -382,46 +379,48 @@
     return false;
   }
 
+  // ---------- DOM helper ----------
+  // YouTube's TV app enforces Trusted Types, which blocks innerHTML with plain strings. Every on-screen
+  // element is therefore built with createElement + textContent, never innerHTML.
+  function el(tag, css, text) {
+    var e = document.createElement(tag);
+    if (css) e.style.cssText = css;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
   // ---------- on-screen indicator ----------
   var toastEl = null;
   var toastTimer = null;
-  function toast(text, ms) {
+  // toast(mainLine, smallLine?, ms?)
+  function toast(main, sub, ms) {
     if (!document.body) return;
     if (!toastEl) {
-      toastEl = document.createElement("div");
-      var s = toastEl.style;
-      s.position = "fixed";
-      s.top = "6%";
-      s.left = "50%";
-      s.transform = "translateX(-50%)";
-      s.webkitTransform = "translateX(-50%)";
-      s.padding = "18px 34px";
-      s.borderRadius = "48px";
-      s.background = "rgba(0,0,0,0.82)";
-      s.color = "#fff";
-      s.font = "500 30px/1.3 Roboto, Arial, sans-serif";
-      s.zIndex = "2147483647";
-      s.pointerEvents = "none";
-      s.textAlign = "center";
-      s.transition = "opacity .25s";
-      s.opacity = "0";
+      toastEl = el("div",
+        "position:fixed;top:6%;left:50%;transform:translateX(-50%);-webkit-transform:translateX(-50%);" +
+        "padding:18px 34px;border-radius:48px;background:rgba(0,0,0,0.82);color:#fff;" +
+        "font:500 30px/1.3 Roboto,Arial,sans-serif;z-index:2147483647;pointer-events:none;" +
+        "text-align:center;transition:opacity .25s;opacity:0;white-space:nowrap");
     }
     if (toastEl.parentNode !== document.body) document.body.appendChild(toastEl);
-    toastEl.innerHTML = text;
+    clear(toastEl);
+    toastEl.appendChild(el("div", "", main));
+    if (sub) toastEl.appendChild(el("div", "opacity:.7;font-size:20px;font-weight:400;margin-top:4px", sub));
     toastEl.style.opacity = "1";
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { toastEl.style.opacity = "0"; }, ms || 2200);
   }
 
-  function statusText() {
-    if (state.unsupported) return "Audio enhancer: not supported on this TV<br><small>Hold BLUE 3 s to try again</small>";
+  var DOT = " · ";
+  function showStatus(ms) {
+    if (state.unsupported) { toast("Audio enhancer: not supported on this TV", "Hold BLUE 3 s to try again", ms); return; }
     var parts = [];
-    if (!state.enabled) parts.push("&#128264; Enhancement OFF");
-    else parts.push("&#128266; " + modeById(state.mode).name + " &middot; " + Math.round(BOOST_STEPS[state.boostIndex] * 100) + "%");
-    if (state.speed !== 1) parts.push(state.speed + "&times;");
-    if (sleep.choice !== 0) parts.push("&#127769; " + (sleep.choice === "end" ? "end of video" : sleepText().split(" · ")[1]));
-    return parts.join(" &middot; ") +
-      '<br><small style="opacity:.7;font-size:20px">GREEN/RED boost &middot; YELLOW mode &middot; BLUE menu</small>';
+    if (!state.enabled) parts.push("🔈 Enhancement OFF");
+    else parts.push("🔊 " + modeById(state.mode).name + DOT + Math.round(BOOST_STEPS[state.boostIndex] * 100) + "%");
+    if (state.speed !== 1) parts.push(state.speed + "×");
+    if (sleep.choice !== 0) parts.push("🌙 " + (sleep.choice === "end" ? "end of video" : sleepText().split(DOT)[1]));
+    toast(parts.join(DOT), "GREEN/RED boost" + DOT + "YELLOW mode" + DOT + "BLUE menu", ms);
   }
 
   // ---------- menu ----------
@@ -472,38 +471,28 @@
   ];
 
   function buildMenu() {
-    menuEl = document.createElement("div");
-    var s = menuEl.style;
-    s.position = "fixed";
-    s.top = "50%";
-    s.right = "4%";
-    s.transform = "translateY(-50%)";
-    s.webkitTransform = "translateY(-50%)";
-    s.width = "620px";
-    s.padding = "28px 0 20px";
-    s.borderRadius = "28px";
-    s.background = "rgba(18,18,18,0.94)";
-    s.boxShadow = "0 20px 60px rgba(0,0,0,.6)";
-    s.color = "#fff";
-    s.font = "400 28px/1.3 Roboto, Arial, sans-serif";
-    s.zIndex = "2147483647";
+    menuEl = el("div",
+      "position:fixed;top:50%;right:4%;transform:translateY(-50%);-webkit-transform:translateY(-50%);" +
+      "width:620px;padding:28px 0 20px;border-radius:28px;background:rgba(18,18,18,0.94);" +
+      "box-shadow:0 20px 60px rgba(0,0,0,.6);color:#fff;font:400 28px/1.3 Roboto,Arial,sans-serif;" +
+      "z-index:2147483647;text-align:left");
   }
-
-  function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
 
   function renderMenu() {
     if (!menuOpen || !menuEl) return;
-    var html = '<div style="padding:0 36px 16px;font-size:24px;letter-spacing:.06em;color:#aaa;text-transform:uppercase">Enhancer</div>';
+    clear(menuEl);
+    menuEl.appendChild(el("div", "padding:0 36px 16px;font-size:24px;letter-spacing:.06em;color:#aaa;text-transform:uppercase", "Enhancer"));
     for (var i = 0; i < MENU.length; i++) {
       var sel = i === menuRow;
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 36px;' +
-        (sel ? "background:#fff;color:#0f0f0f;" : "") + '">' +
-        '<span style="font-weight:500">' + esc(MENU[i].label) + "</span>" +
-        '<span style="font-weight:' + (sel ? 600 : 400) + ';' + (sel ? "" : "color:#ccc;") + '">' +
-        (sel ? "&#9664;&nbsp; " : "") + esc(MENU[i].value()) + (sel ? " &nbsp;&#9654;" : "") + "</span></div>";
+      var row = el("div", "display:flex;justify-content:space-between;align-items:center;padding:16px 36px;" +
+        (sel ? "background:#fff;color:#0f0f0f;" : "color:#fff;"));
+      row.appendChild(el("span", "font-weight:500", MENU[i].label));
+      row.appendChild(el("span", "font-weight:" + (sel ? 600 : 400) + ";" + (sel ? "" : "color:#ccc;"),
+        (sel ? "◀  " : "") + MENU[i].value() + (sel ? "  ▶" : "")));
+      menuEl.appendChild(row);
     }
-    html += '<div style="padding:18px 36px 0;font-size:20px;color:#888">&#9650;&#9660; choose &nbsp;&middot;&nbsp; &#9664;&#9654; change &nbsp;&middot;&nbsp; OK / BACK close</div>';
-    menuEl.innerHTML = html;
+    menuEl.appendChild(el("div", "padding:18px 36px 0;font-size:20px;color:#888",
+      "▲▼ choose" + DOT + "◀▶ change" + DOT + "OK / BACK close"));
     bumpIdle();
   }
 
@@ -550,7 +539,7 @@
     if (sleep.fading) {
       cancelFade();
       setSleep(0);
-      toast("&#127769; Sleep timer cancelled");
+      toast("\uD83C\uDF19 Sleep timer cancelled");
     }
 
     if (menuOpen) {
@@ -591,11 +580,11 @@
 
     resume();
     if (!state.unsupported) scan();
-    if (state.unsupported) { toast(statusText()); return; }
+    if (state.unsupported) { showStatus(); return; }
     if (code === KEY.GREEN) MENU[0].change(1);
     else if (code === KEY.RED) MENU[0].change(-1);
     else if (code === KEY.YELLOW) MENU[1].change(1);
-    toast(statusText());
+    showStatus();
   }
 
   function onKeyUp(e) {
@@ -624,7 +613,7 @@
     scan();
     // YouTube TV swaps players without reloading; keep looking for the video element.
     setInterval(scan, 1500);
-    setTimeout(function () { toast(statusText(), 4000); }, 2500);
+    setTimeout(function () { showStatus(4000); }, 2500);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();
