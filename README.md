@@ -74,6 +74,12 @@ watches for this: if a video plays for 8 seconds with no audio getting through, 
 "not supported on this TV", switches itself off and reloads, so YouTube plays normally. Hold **BLUE**
 for 3 seconds to try again.
 
+## Releasing an update
+jsDelivr caches files for up to 12 hours and doesn't reliably clear the script's cache. So each release
+copies `userScript.js` to a new file, `dist/userScript-<version>.js`, and points `main` in `package.json`
+at it. A file name jsDelivr has never seen can't be stale. Restart the TV afterwards so TizenBrew
+reloads the module.
+
 ## How it works
 `userScript.js` is injected into YouTube's TV page by TizenBrew. It sends the `<video>` element's
 audio through Web Audio: boost gain → low shelf (120 Hz) → mud cut (350 Hz) → presence (2.8 kHz) →
