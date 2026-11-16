@@ -1,7 +1,7 @@
 # YouTube TV Audio Enhancer
 
 A [TizenBrew](https://github.com/reisxd/TizenBrew) module that adds volume boost, sound modes,
-playback speed, minute jumps and a sleep timer to YouTube on Samsung (Tizen) TVs. It runs YouTube's own
+playback speed, jumps in seconds and a sleep timer to YouTube on Samsung (Tizen) TVs. It runs YouTube's own
 TV app (youtube.com/tv) and only adds these controls: your account, subscriptions and the normal YouTube
 player all stay the same. No ad-blocking or other changes.
 
@@ -19,8 +19,8 @@ remotes that have them (A red, B green, C yellow, D blue); on smart remotes with
 | **D** (blue) | Open / close the **Enhancer menu** |
 | **CH ▲ / CH ▼** | Playback speed faster / slower (0.75× to 2×) |
 | **OK** (while sped up and playing) | Back to Normal speed — that press only; the next OK works in YouTube as usual |
-| **1 – 9** | Jump forward that many minutes |
-| **0**, then **1 – 9** | Jump back that many minutes (0 waits 3 s for the number) |
+| **Numbers** | Type seconds to jump forward: **5** = 5 s, **3 0** = 30 s, **1 2 0** = 2 min. Jumps 1.5 s after the last digit |
+| **0**, then numbers | Jump back: **0 3 0** = back 30 s (after 0 you have 3 s to type) |
 | **GUIDE** | Sleep timer: Off → 15 → 30 → 45 → 60 → 90 → 120 min → End of video → Off |
 | **PRE-CH** | Enhancement on / off (compare with the original sound) |
 | **D** (hold 3 s) | Try again after "not supported" |

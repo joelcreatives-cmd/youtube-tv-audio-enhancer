@@ -10,7 +10,7 @@
  *   GREEN  = boost up        RED  = boost down
  *   YELLOW = next sound mode BLUE = open / close the Enhancer menu
  * GUIDE = cycle sleep timer. PRE-CH = enhancement on/off.
- * CH UP/DOWN = playback speed; OK (while sped up and playing) = normal speed. 1-9 = jump forward that many minutes, 0 then 1-9 = jump back.
+ * CH UP/DOWN = playback speed; OK (while sped up and playing) = normal speed. Number keys: type seconds to jump forward (3 0 = 30 s); start with 0 to jump back.
  * In the menu: UP/DOWN pick a setting, LEFT/RIGHT change it, OK = normal speed, BACK / BLUE close it.
  *
  * Written in ES5-style JavaScript on purpose: older Tizen browser engines don't support newer syntax.
@@ -24,7 +24,7 @@
   if (window.__ytAudioEnhancer) return; // TizenBrew may evaluate the script more than once
   window.__ytAudioEnhancer = true;
 
-  var VERSION = "1.2.1";
+  var VERSION = "1.3.0";
   var STORE_KEY = "ytAudioEnhancer.v1";
   var BOOST_STEPS = [1, 1.25, 1.5, 2, 2.5, 3, 4];
   var SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -420,34 +420,46 @@
   }
 
   // ---------- jump (number keys) ----------
-  // 1-9 jumps forward that many minutes; 0 then 1-9 jumps back. Only while a video is open, so typing
+  // Type a number of seconds and it jumps forward that far, e.g. 5, 30, 120. Start with 0 to jump back
+  // (0 3 0 = back 30 s). It jumps ~1.5 s after the last digit. Only while a video is open, so typing
   // digits elsewhere in YouTube is left alone.
-  var jumpBack = false;
-  var jumpBackTimer = null;
+  var JUMP_WAIT_MS = 1500;
+  var BACK_WAIT_MS = 3000;
+  var entry = { back: false, digits: "", timer: null };
   function videoOpen() {
     var v = findVideo();
     return !!(v && isFinite(v.duration) && v.duration > 0 && /watch/.test(location.hash + location.pathname));
   }
-  function jump(minutes) {
+  function jump(seconds) {
     var v = findVideo();
     if (!v || !isFinite(v.duration)) return;
-    var target = Math.max(0, Math.min(v.duration - 1, v.currentTime + minutes * 60));
+    var target = Math.max(0, Math.min(v.duration - 1, v.currentTime + seconds));
     try { v.currentTime = target; } catch (e) {}
-    toast((minutes > 0 ? "\u23e9 Forward " : "\u23ea Back ") + Math.abs(minutes) + " min" + DOT + fmtTime(target) + " / " + fmtTime(v.duration),
-      "1-9 forward" + DOT + "0 then 1-9 back");
+    toast((seconds > 0 ? "\u23e9 Forward " : "\u23ea Back ") + Math.abs(seconds) + " s" + DOT + fmtTime(target) + " / " + fmtTime(v.duration),
+      "Type seconds to jump forward" + DOT + "0 first to jump back");
+  }
+  function resetEntry() {
+    clearTimeout(entry.timer);
+    entry.back = false;
+    entry.digits = "";
+  }
+  function commitEntry() {
+    var n = parseInt(entry.digits, 10);
+    var back = entry.back;
+    resetEntry();
+    if (!n) { toast("Jump cancelled"); return; }
+    jump(back ? -n : n);
   }
   function onDigit(n) {
-    if (n === 0) {
-      jumpBack = true;
-      clearTimeout(jumpBackTimer);
-      jumpBackTimer = setTimeout(function () { jumpBack = false; }, 3000);
-      toast("\u23ea Jump back: press 1-9", "minutes" + DOT + "cancels in 3 s");
-      return;
+    if (!entry.back && entry.digits === "" && n === 0) {
+      entry.back = true;
+    } else if (entry.digits.length < 5) {
+      entry.digits += String(n);
     }
-    var back = jumpBack;
-    jumpBack = false;
-    clearTimeout(jumpBackTimer);
-    jump(back ? -n : n);
+    clearTimeout(entry.timer);
+    entry.timer = setTimeout(commitEntry, entry.digits === "" ? BACK_WAIT_MS : JUMP_WAIT_MS);
+    toast((entry.back ? "\u23ea Jump back: " : "\u23e9 Jump forward: ") + (entry.digits || "_") + " s",
+      entry.digits === "" ? "Type the seconds" : "Jumping\u2026 keep typing to add digits");
   }
 
   function showSpeed() {
@@ -460,7 +472,7 @@
     else parts.push("\uD83D\uDD0A " + modeById(state.mode).name + DOT + Math.round(BOOST_STEPS[state.boostIndex] * 100) + "%");
     if (state.speed !== 1) parts.push(state.speed + "\u00d7");
     if (sleep.choice !== 0) parts.push("\uD83C\uDF19 " + (sleep.choice === "end" ? "end of video" : sleepText().split(DOT)[1]));
-    toast(parts.join(DOT), "A/B boost" + DOT + "C mode" + DOT + "D menu" + DOT + "CH speed" + DOT + "1-9 jump", ms);
+    toast(parts.join(DOT), "A/B boost" + DOT + "C mode" + DOT + "D menu" + DOT + "CH speed" + DOT + "numbers jump (s)", ms);
   }
 
   // ---------- menu ----------
@@ -585,7 +597,7 @@
       toast("\uD83C\uDF19 Sleep timer cancelled");
     }
 
-    // Number keys: jump forward / back in minutes (only while a video is open).
+    // Number keys: type seconds to jump forward / back (only while a video is open).
     if (code >= 48 && code <= 57 && videoOpen()) {
       consume(e);
       if (!e.repeat) onDigit(code - 48);
