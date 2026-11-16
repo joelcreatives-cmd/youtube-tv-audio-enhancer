@@ -16,15 +16,13 @@
 (function () {
   "use strict";
 
-  // TizenBrew runs this at document start ("evaluateScriptOnDocumentStart") so our key listeners are
-  // registered before YouTube's own. That also runs it in every frame and on any page the app opens,
-  // so only continue in the top-level YouTube page.
+  // Only run in the top-level YouTube page (TizenBrew evaluates the script in every new context).
   if (window.top !== window) return;
   if (!/(^|\.)youtube\.com$/.test(location.hostname)) return;
   if (window.__ytAudioEnhancer) return; // TizenBrew may evaluate the script more than once
   window.__ytAudioEnhancer = true;
 
-  var VERSION = "1.1.1";
+  var VERSION = "1.1.2";
   var STORE_KEY = "ytAudioEnhancer.v1";
   var BOOST_STEPS = [1, 1.25, 1.5, 2, 2.5, 3, 4];
   var SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
