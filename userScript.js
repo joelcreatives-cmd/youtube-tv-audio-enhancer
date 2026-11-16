@@ -1,5 +1,5 @@
 /*
- * YouTube TV Audio Enhancer — TizenBrew site-modification module.
+ * YouTube TV Audio Enhancer \u2014 TizenBrew site-modification module.
  *
  * Runs inside YouTube's own TV web app (youtube.com/tv) on Samsung Tizen TVs.
  * Routes the player's audio through Web Audio:
@@ -9,7 +9,9 @@
  * Remote control (colour keys; on Samsung smart remotes press the 123 / colour button to show them):
  *   GREEN  = boost up        RED  = boost down
  *   YELLOW = next sound mode BLUE = open / close the Enhancer menu
- * In the menu: UP/DOWN pick a setting, LEFT/RIGHT change it, OK / BACK / BLUE close it.
+ * GUIDE = cycle sleep timer. PRE-CH = enhancement on/off.
+ * CH UP/DOWN = playback speed. 1-9 = jump forward that many minutes, 0 then 1-9 = jump back.
+ * In the menu: UP/DOWN pick a setting, LEFT/RIGHT change it, OK = normal speed, BACK / BLUE close it.
  *
  * Written in ES5-style JavaScript on purpose: older Tizen browser engines don't support newer syntax.
  */
@@ -22,7 +24,7 @@
   if (window.__ytAudioEnhancer) return; // TizenBrew may evaluate the script more than once
   window.__ytAudioEnhancer = true;
 
-  var VERSION = "1.1.2";
+  var VERSION = "1.2.0";
   var STORE_KEY = "ytAudioEnhancer.v1";
   var BOOST_STEPS = [1, 1.25, 1.5, 2, 2.5, 3, 4];
   var SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -41,7 +43,7 @@
   ];
 
   // Tizen key codes. Colour keys are registered via package.json "keys"; arrows, OK and Back always arrive.
-  var KEY = { RED: 403, GREEN: 404, YELLOW: 405, BLUE: 406, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, ENTER: 13, BACK: 10009, ESC: 27 };
+  var KEY = { RED: 403, GREEN: 404, YELLOW: 405, BLUE: 406, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, ENTER: 13, BACK: 10009, ESC: 27, CH_UP: 427, CH_DOWN: 428, GUIDE: 458, PRE_CH: 10190 };
 
   var state = load();
   var ctx = null;
@@ -249,7 +251,7 @@
     applySpeed();
   }
   function speedText() {
-    return (state.speed === 1 ? "Normal" : state.speed + "×");
+    return (state.speed === 1 ? "Normal" : state.speed + "\u00d7");
   }
 
   // ---------- sleep timer ----------
@@ -262,7 +264,7 @@
     var left = Math.max(0, sleep.endsAt - Date.now());
     var m = Math.floor(left / 60000);
     var s = Math.floor((left % 60000) / 1000);
-    return sleep.choice + " min · " + m + ":" + (s < 10 ? "0" : "") + s + " left";
+    return sleep.choice + " min \u00b7 " + m + ":" + (s < 10 ? "0" : "") + s + " left";
   }
 
   function setSleep(choice) {
@@ -292,7 +294,7 @@
     var left = sleep.endsAt - Date.now();
     if (!sleep.warned && left <= 60000 && left > FADE_SECONDS * 1000) {
       sleep.warned = true;
-      toast("\uD83C\uDF19 Sleep timer: pausing in 1 minute", "Press BLUE to change it", 5000);
+      toast("\uD83C\uDF19 Sleep timer: pausing in 1 minute", "Press GUIDE to change it", 5000);
     }
     if (left <= FADE_SECONDS * 1000 && !sleep.fading) startFade();
     if (menuOpen) renderMenu();
@@ -367,7 +369,7 @@
         "position:fixed;left:0;top:0;width:100%;height:100%;background:#000;z-index:2147483646;" +
         "color:rgba(255,255,255,.35);font:400 28px/1.4 Roboto,Arial,sans-serif;" +
         "display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center");
-      dimEl.appendChild(el("div", "", "🌙 Sleep timer ended"));
+      dimEl.appendChild(el("div", "", "\uD83C\uDF19 Sleep timer ended"));
       dimEl.appendChild(el("div", "", "Press any button to wake"));
     }
     if (document.body && dimEl.parentNode !== document.body) document.body.appendChild(dimEl);
@@ -410,15 +412,55 @@
     toastTimer = setTimeout(function () { toastEl.style.opacity = "0"; }, ms || 2200);
   }
 
-  var DOT = " · ";
+  var DOT = " \u00b7 ";
+  function fmtTime(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s2 = sec % 60;
+    return (h ? h + ":" + (m < 10 ? "0" : "") : "") + m + ":" + (s2 < 10 ? "0" : "") + s2;
+  }
+
+  // ---------- jump (number keys) ----------
+  // 1-9 jumps forward that many minutes; 0 then 1-9 jumps back. Only while a video is open, so typing
+  // digits elsewhere in YouTube is left alone.
+  var jumpBack = false;
+  var jumpBackTimer = null;
+  function videoOpen() {
+    var v = findVideo();
+    return !!(v && isFinite(v.duration) && v.duration > 0 && /watch/.test(location.hash + location.pathname));
+  }
+  function jump(minutes) {
+    var v = findVideo();
+    if (!v || !isFinite(v.duration)) return;
+    var target = Math.max(0, Math.min(v.duration - 1, v.currentTime + minutes * 60));
+    try { v.currentTime = target; } catch (e) {}
+    toast((minutes > 0 ? "\u23e9 Forward " : "\u23ea Back ") + Math.abs(minutes) + " min" + DOT + fmtTime(target) + " / " + fmtTime(v.duration),
+      "1-9 forward" + DOT + "0 then 1-9 back");
+  }
+  function onDigit(n) {
+    if (n === 0) {
+      jumpBack = true;
+      clearTimeout(jumpBackTimer);
+      jumpBackTimer = setTimeout(function () { jumpBack = false; }, 3000);
+      toast("\u23ea Jump back: press 1-9", "minutes" + DOT + "cancels in 3 s");
+      return;
+    }
+    var back = jumpBack;
+    jumpBack = false;
+    clearTimeout(jumpBackTimer);
+    jump(back ? -n : n);
+  }
+
+  function showSpeed() {
+    toast("\u23e9 Speed: " + speedText(), "CH \u25b2 faster" + DOT + "CH \u25bc slower" + DOT + "OK in menu = normal");
+  }
   function showStatus(ms) {
-    if (state.unsupported) { toast("Audio enhancer: not supported on this TV", "Hold BLUE 3 s to try again", ms); return; }
+    if (state.unsupported) { toast("Audio enhancer: not supported on this TV", "Hold D for 3 s to try again", ms); return; }
     var parts = [];
-    if (!state.enabled) parts.push("🔈 Enhancement OFF");
-    else parts.push("🔊 " + modeById(state.mode).name + DOT + Math.round(BOOST_STEPS[state.boostIndex] * 100) + "%");
-    if (state.speed !== 1) parts.push(state.speed + "×");
-    if (sleep.choice !== 0) parts.push("🌙 " + (sleep.choice === "end" ? "end of video" : sleepText().split(DOT)[1]));
-    toast(parts.join(DOT), "GREEN/RED boost" + DOT + "YELLOW mode" + DOT + "BLUE menu", ms);
+    if (!state.enabled) parts.push("\uD83D\uDD08 Enhancement OFF");
+    else parts.push("\uD83D\uDD0A " + modeById(state.mode).name + DOT + Math.round(BOOST_STEPS[state.boostIndex] * 100) + "%");
+    if (state.speed !== 1) parts.push(state.speed + "\u00d7");
+    if (sleep.choice !== 0) parts.push("\uD83C\uDF19 " + (sleep.choice === "end" ? "end of video" : sleepText().split(DOT)[1]));
+    toast(parts.join(DOT), "A/B boost" + DOT + "C mode" + DOT + "D menu" + DOT + "CH speed" + DOT + "1-9 jump", ms);
   }
 
   // ---------- menu ----------
@@ -468,6 +510,9 @@
     }
   ];
 
+  var SPEED_ROW = 3; // index of "Playback speed" in MENU
+  var SLEEP_ROW = 4; // index of "Sleep timer" in MENU
+
   function buildMenu() {
     menuEl = el("div",
       "position:fixed;top:50%;right:4%;transform:translateY(-50%);-webkit-transform:translateY(-50%);" +
@@ -486,11 +531,11 @@
         (sel ? "background:#fff;color:#0f0f0f;" : "color:#fff;"));
       row.appendChild(el("span", "font-weight:500", MENU[i].label));
       row.appendChild(el("span", "font-weight:" + (sel ? 600 : 400) + ";" + (sel ? "" : "color:#ccc;"),
-        (sel ? "◀  " : "") + MENU[i].value() + (sel ? "  ▶" : "")));
+        (sel ? "\u25c0\u00a0 " : "") + MENU[i].value() + (sel ? " \u00a0\u25b6" : "")));
       menuEl.appendChild(row);
     }
     menuEl.appendChild(el("div", "padding:18px 36px 0;font-size:20px;color:#888",
-      "▲▼ choose" + DOT + "◀▶ change" + DOT + "OK / BACK close"));
+      "\u25b2\u25bc choose" + DOT + "\u25c0\u25b6 change" + DOT + "OK normal speed" + DOT + "BACK close"));
     bumpIdle();
   }
 
@@ -540,10 +585,18 @@
       toast("\uD83C\uDF19 Sleep timer cancelled");
     }
 
+    // Number keys: jump forward / back in minutes (only while a video is open).
+    if (code >= 48 && code <= 57 && videoOpen()) {
+      consume(e);
+      if (!e.repeat) onDigit(code - 48);
+      return;
+    }
+
     if (menuOpen) {
       if (code === KEY.UP || code === KEY.DOWN || code === KEY.LEFT || code === KEY.RIGHT ||
           code === KEY.ENTER || code === KEY.BACK || code === KEY.ESC || code === KEY.BLUE ||
-          code === KEY.RED || code === KEY.GREEN || code === KEY.YELLOW) {
+          code === KEY.RED || code === KEY.GREEN || code === KEY.YELLOW ||
+          code === KEY.CH_UP || code === KEY.CH_DOWN || code === KEY.GUIDE || code === KEY.PRE_CH) {
         consume(e);
         if (code === KEY.UP) menuRow = (menuRow - 1 + MENU.length) % MENU.length;
         else if (code === KEY.DOWN) menuRow = (menuRow + 1) % MENU.length;
@@ -552,10 +605,39 @@
         else if (code === KEY.GREEN) MENU[0].change(1);
         else if (code === KEY.RED) MENU[0].change(-1);
         else if (code === KEY.YELLOW) MENU[1].change(1);
-        else if (!e.repeat) { closeMenu(); return; } // ENTER / BACK / ESC / BLUE
+        else if (code === KEY.CH_UP || code === KEY.CH_DOWN) { stepSpeed(code === KEY.CH_UP ? 1 : -1); menuRow = SPEED_ROW; }
+        else if (code === KEY.GUIDE) { if (!e.repeat) { MENU[SLEEP_ROW].change(1); menuRow = SLEEP_ROW; } }
+        else if (code === KEY.PRE_CH) { if (!e.repeat && !state.unsupported) { MENU[2].change(1); menuRow = 2; } }
+        else if (code === KEY.ENTER) {
+          // OK puts playback speed back to Normal; the menu stays open.
+          if (!e.repeat) { state.speed = 1; save(); applySpeed(); menuRow = SPEED_ROW; }
+        }
+        else if (!e.repeat) { closeMenu(); return; } // BACK / ESC / BLUE
         renderMenu();
         return;
       }
+      return;
+    }
+
+    // GUIDE: cycle the sleep timer. PRE-CH: enhancement on / off. (No menu needed.)
+    if (code === KEY.GUIDE) {
+      consume(e);
+      if (!e.repeat) MENU[SLEEP_ROW].change(1);
+      toast("\uD83C\uDF19 Sleep timer: " + sleepText(), "Press GUIDE again to change" + DOT + "Off" + DOT + "15-120 min" + DOT + "end of video");
+      return;
+    }
+    if (code === KEY.PRE_CH) {
+      consume(e);
+      if (!e.repeat && !state.unsupported) MENU[2].change(1);
+      showStatus();
+      return;
+    }
+
+    // CH up / down: playback speed without opening the menu.
+    if (code === KEY.CH_UP || code === KEY.CH_DOWN) {
+      consume(e);
+      if (!e.repeat) stepSpeed(code === KEY.CH_UP ? 1 : -1);
+      showSpeed();
       return;
     }
 
@@ -568,7 +650,7 @@
       if (state.unsupported && Date.now() - blueDownAt > 3000) {
         state.unsupported = false;
         save();
-        toast("Trying the audio enhancer again…");
+        toast("Trying the audio enhancer again\u2026");
         blueDownAt = 0;
         setTimeout(function () { location.reload(); }, 1200);
       }

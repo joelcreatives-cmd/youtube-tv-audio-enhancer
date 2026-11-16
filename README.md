@@ -1,25 +1,34 @@
 # YouTube TV Audio Enhancer
 
 A [TizenBrew](https://github.com/reisxd/TizenBrew) module that adds volume boost, sound modes,
-playback speed and a sleep timer to YouTube on Samsung (Tizen) TVs. It runs YouTube's own TV app (youtube.com/tv) and only adds
-these controls: your account, subscriptions and the normal YouTube player all stay the same. No ad-blocking or
-other changes.
+playback speed, minute jumps and a sleep timer to YouTube on Samsung (Tizen) TVs. It runs YouTube's own
+TV app (youtube.com/tv) and only adds these controls: your account, subscriptions and the normal YouTube
+player all stay the same. No ad-blocking or other changes.
 
 ## Remote controls
 
-Uses the colour keys. On Samsung smart remotes without colour buttons, press the **123** button
-(or long-press **Play/Pause** on some remotes) to bring up the on-screen colour keys.
+Everything works without opening the menu. Colour keys are the **A B C D** buttons on Samsung
+remotes that have them (A red, B green, C yellow, D blue); on smart remotes without them, press the
+**123** button to bring up on-screen colour keys.
 
-| Key | Action |
+| Button | Action |
 | --- | --- |
-| GREEN | Boost up (100 → 125 → 150 → 200 → 250 → 300 → 400%) |
-| RED | Boost down |
-| YELLOW | Next sound mode |
-| BLUE | Open / close the **Enhancer menu** |
-| BLUE (hold 3 s) | Try again after "not supported" |
+| **B** (green) | Boost up (100 → 125 → 150 → 200 → 250 → 300 → 400%) |
+| **A** (red) | Boost down |
+| **C** (yellow) | Next sound mode |
+| **D** (blue) | Open / close the **Enhancer menu** |
+| **CH ▲ / CH ▼** | Playback speed faster / slower (0.75× to 2×) |
+| **1 – 9** | Jump forward that many minutes |
+| **0**, then **1 – 9** | Jump back that many minutes (0 waits 3 s for the number) |
+| **GUIDE** | Sleep timer: Off → 15 → 30 → 45 → 60 → 90 → 120 min → End of video → Off |
+| **PRE-CH** | Enhancement on / off (compare with the original sound) |
+| **D** (hold 3 s) | Try again after "not supported" |
 
-### Enhancer menu (BLUE)
-UP/DOWN choose a setting, LEFT/RIGHT change it, OK or BACK closes it. It closes by itself after 20 s.
+Number keys only jump while a video is open, so typing numbers elsewhere in YouTube isn't affected.
+
+### Enhancer menu (D)
+UP/DOWN choose a setting, LEFT/RIGHT change it. **OK** puts the playback speed back to Normal.
+**RETURN/BACK** (or D again) closes the menu. All the buttons above also work while it's open. It closes by itself after 20 s.
 
 | Setting | Choices |
 | --- | --- |
@@ -72,7 +81,7 @@ air (9 kHz) → compressor/limiter → make-up gain → output.
 
 ## Status
 Tested in desktop Chrome with a test page (remote keys, settings saved, silence fallback).
-Working on a Samsung QA50QEF1 (2025) with TizenBrew 2.0.5.
+Working on a Samsung QA50QEF1 (2025) with TizenBrew 2.0.5 (remote BN59-01483C).
 
 Keep Developer Mode on with Host PC IP `127.0.0.1`: TizenBrew needs it every time it runs.
 If TizenBrew shows "Launch Service failed: Unknown error.", restart the TV again (see
