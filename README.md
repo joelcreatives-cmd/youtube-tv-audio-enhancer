@@ -19,8 +19,8 @@ remotes that have them (A red, B green, C yellow, D blue); on smart remotes with
 | **D** (blue) | Open / close the **Enhancer menu** |
 | **CH ▲ / CH ▼** | Playback speed faster / slower (0.75× to 2×) |
 | **OK** (while sped up and playing) | Back to Normal speed — that press only; the next OK works in YouTube as usual |
-| **Numbers** | Type seconds to jump forward: **5** = 5 s, **3 0** = 30 s, **1 2 0** = 2 min. Jumps 1.5 s after the last digit |
-| **0**, then numbers | Jump back: **0 3 0** = back 30 s (after 0 you have 3 s to type) |
+| **Numbers** | Type seconds to jump back: **1** = 1 s, **3 0** = 30 s, **1 2 0** = 2 min. Jumps 1.5 s after the last digit |
+| **0**, then numbers | Jump forward: **0 1** = forward 1 s, **0 3 0** = forward 30 s (after 0 you have 3 s to type) |
 | **GUIDE** | Sleep timer: Off → 15 → 30 → 45 → 60 → 90 → 120 min → End of video → Off |
 | **PRE-CH** | Enhancement on / off (compare with the original sound) |
 | **D** (hold 3 s) | Try again after "not supported" |
